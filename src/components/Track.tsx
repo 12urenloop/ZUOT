@@ -1,5 +1,17 @@
 import React, {FC, useEffect, useState} from 'react';
-import {Grid, TextField} from "@mui/material";
+import {
+    Card, CardActions,
+    CardContent,
+    CardMedia,
+    Checkbox,
+    FormControlLabel,
+    Grid,
+    Switch,
+    TextField,
+    Typography
+} from "@mui/material";
+import "../styles/track.css"
+import Runner from "./Runner";
 
 interface TrackProps {
     ws: WebSocket;
@@ -9,24 +21,46 @@ interface StationData {
     distanceFromStart: number,
     isBroken: boolean
 }
+interface TeamData {
+    id: number,
+    name: string
+}
+interface CountData {
+    count: number,
+    team: {
+        id: number,
+        name: string
+    },
+    position: number
+}
 interface SocketData {
-    topic: "station" | string,
-    data: StationData[] | object
+    topic: "stations" | "teams" | "counts" | string,
+    data: StationData[] | TeamData[] | CountData[] |  object
 }
 interface Station {
     [id: number] : {
         distanceFromStart: number,
-        length: number,
         point: SVGPoint,
         isBroken: boolean,
         nextStationId: number
-    }
+    };
+}
+interface Team {
+    [id: number]: {
+        name: string,
+        logo: string,
+        show: boolean,
+        count: number,
+        position: number
+    };
 }
 
 const Track: FC<TrackProps> = ({ ws }) => {
 
-    const [path, setPath] = useState<string>("M 76, 20 L 124, 20 A 14, 14 -90 1 1 124, 52 L 76, 52 A 14, 14 90 0 1 76, 20 Z");
+    const [path, setPath] = useState<string>("M 19, 5 L 81, 5 A 14, 14 -90 1 1 81, 37 L 19, 37 A 14, 14 90 0 1 19, 5 Z");
     const [stations, setStations] = useState<Station>({});
+    const [showStations, setShowStations] = useState<boolean>(true);
+    const [teams, setTeams] = useState<Team>({});
 
     const handleStation = (data: StationData[]) => {
         const newStations: Station = {};
@@ -36,7 +70,6 @@ const Track: FC<TrackProps> = ({ ws }) => {
         data.forEach((station, index) => {
             newStations[station.id] = {
                 distanceFromStart: station.distanceFromStart,
-                length: station.distanceFromStart * lengthFactor,
                 point: path.getPointAtLength(station.distanceFromStart * lengthFactor),
                 isBroken: station.isBroken,
                 nextStationId: index === 0 ? data[data.length - 1].id : index === data.length - 1 ? data[0].id : data[index + 1].id
@@ -44,8 +77,33 @@ const Track: FC<TrackProps> = ({ ws }) => {
         });
         setStations(newStations);
     };
+    const handleTeam = (data: TeamData[]) => {
+        const newTeams: Team = {};
+        data.forEach(team => {
+            newTeams[team.id] = {
+                name: team.name,
+                logo: `${team.name.toLowerCase()}.png`,
+                show: team.id in teams ? teams[team.id].show : true,
+                count: team.id in teams ? teams[team.id].count : 0,
+                position: team.id in teams ? teams[team.id].position : 0,
+            };
+        });
+        setTeams(newTeams);
+    };
+    const handleCount = (data: CountData[]) => {
+        const newTeams: Team = {...teams};
+        data.forEach(info => {
+            if (info.team.id in newTeams) {
+                newTeams[info.team.id].count = info.count;
+                newTeams[info.team.id].position = info.position;
+            }
+        });
+        setTeams(newTeams);
+    };
     const handleSocketData = {
-        stations: (data: StationData[]) => handleStation(data)
+        stations: (data: StationData[]) => handleStation(data),
+        teams: (data: TeamData[]) => handleTeam(data),
+        counts: (data: CountData[]) => handleCount(data)
     };
 
     useEffect(() => {
@@ -54,7 +112,7 @@ const Track: FC<TrackProps> = ({ ws }) => {
             if (data.topic in handleSocketData) {
                 handleSocketData[data.topic](data.data);
             }
-        })
+        });
     });
     useEffect(() => {
         const newStation = {}
@@ -63,25 +121,76 @@ const Track: FC<TrackProps> = ({ ws }) => {
         const lengthFactor = path.getTotalLength() / maxDistance;
         for (const station in stations) {
             newStation[station] = stations[station];
-            newStation[station].length = stations[station].distanceFromStart * lengthFactor;
             newStation[station].point = path.getPointAtLength(stations[station].distanceFromStart * lengthFactor);
         }
         setStations(newStation);
     }, [path]);
 
+    const checkBoxOnChange = (id: string) => {
+        const oldTeams = {...teams};
+        oldTeams[parseInt(id)].show = ! oldTeams[parseInt(id)].show;
+        setTeams(oldTeams);
+    };
+
     return (
         <Grid container justifyContent="left">
-            <Grid item xs={12} >
+            <Grid style={{ marginTop: "15px" }} item xs={10} >
                 <TextField fullWidth label="Path" variant="outlined" defaultValue={path} onChange={(event) => setPath(event.target.value)} />
             </Grid>
+            <Grid item xs={2}>
+                <FormControlLabel
+                    control={<Switch checked={showStations} onChange={() => setShowStations(! showStations)} />}
+                    label={<Typography variant="body1">Show Stations</Typography>}
+                    labelPlacement="start"
+                />
+            </Grid>
             <Grid item xs={12}>
-                <svg viewBox="0 0 200 200">
-                    <path d={path} fill="none" stroke="black" strokeWidth="1"/>
-                    {Object.keys(stations).map(stationId => (
-                        <circle key={stationId} cx={stations[stationId].point.x} cy={stations[stationId].point.y} r={2} fill="red" />
-                    ))}
+                <svg height="100%" width="100%" viewBox="0 0 100 43">
+                    <path
+                        d={path}
+                        fill="lightGray"
+                        stroke="#fc4903"
+                        strokeWidth="1"
+                    />
+                    { showStations && Object.values(stations).map(station => (
+                        <circle style={{ position: "relative" }}
+                            key={station.distanceFromStart}
+                            cx={station.point.x}
+                            cy={station.point.y}
+                            r={2}
+                            fill="green"
+                        />
+                    )) }
+                    { Object.values(teams).map(team => team.show && (
+                        <Runner key={team.name} team={team} stations={stations} />
+                    )) }
                 </svg>
             </Grid>
+            { Object.entries(teams).map(([id, team]) => (
+                    <Grid key={id} item xs={3} md={1}>
+                        <Card className="team">
+                            <CardMedia
+                                component="img"
+                                height="auto"
+                                image={"../logo/" + team.logo}
+                                alt={team.name}
+                            />
+                            <CardContent>
+                                <Typography variant="body2">
+                                    {team.name}
+                                </Typography>
+                            </CardContent>
+                            <CardActions>
+                                <FormControlLabel
+                                    control={<Checkbox checked={team.show} onChange={() => checkBoxOnChange(id)}/>}
+                                    label={<Typography variant="body2">Show</Typography>}
+                                    labelPlacement="bottom"
+                                />
+                            </CardActions>
+                        </Card>
+                    </Grid>
+                ))
+                }
         </Grid>
     );
 };
