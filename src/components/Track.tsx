@@ -1,194 +1,130 @@
-import React, {useState} from 'react';
-import {Card, CardActions, CardContent, CardMedia, Checkbox, FormControlLabel, Grid, Typography} from "@mui/material";
-import '../styles/track.css'
+import React, {FC, useEffect, useState} from 'react';
+import {FormControlLabel, Grid, Switch, TextField, Typography} from "@mui/material";
+import "../styles/track.css"
+import Runner from "./Runner";
+import {CountData, SocketData, Station, StationData, Team, TeamData} from "../types";
+import TeamDisplay from "./TeamDisplay";
 
-const viewBoxWidth = 30;
-const viewBoxHeight = 20;
-const strokeWidth = 1;
-const centerX = viewBoxWidth / 2;
-const centerY = viewBoxHeight / 2;
-const maxEllipseRadius = Math.min(centerX, centerY) - strokeWidth;
-const ellipseHorizontalRadius = maxEllipseRadius;
-const ellipseVerticalRadius = maxEllipseRadius * 0.6;
-const xPathOffSet = 0.8;
-const yPathOffSet = 1.2;
-const imageHeight = 2;
+interface TrackProps {
+    ws: WebSocket;
+}
 
-const Track = () => {
-    const [showTeam, setShowTeam] = useState({
-        Antilopen: true,
-        Blandinia: true,
-        Hermes: true,
-        HILOK: true,
-        "HILOK Roze": true,
-        HK: true,
-        Lila: true,
-        Lombrosiana: true,
-        Politeia: true,
-        SK: true,
-        VEK: true,
-        VGK: true,
-        VLK: true,
-        VPPK: true,
-        VRG: true,
-        VTK: true,
-        Wetenschappen: true
+const Track: FC<TrackProps> = ({ ws }) => {
+
+    const [path, setPath] = useState<string>("M 19, 5 L 81, 5 A 14, 14 -90 1 1 81, 37 L 19, 37 A 14, 14 90 0 1 19, 5 Z");
+    const [stations, setStations] = useState<Station>({});
+    const [showStations, setShowStations] = useState<boolean>(true);
+    const [teams, setTeams] = useState<Team>({});
+
+    const handleStation = (data: StationData[]) => {
+        const newStations: Station = {};
+        const path: SVGPathElement = document.querySelector('path');
+        data.sort((station1, station2) => station1.distanceFromStart - station2.distanceFromStart)
+        const lengthFactor = path.getTotalLength() / data[data.length - 1].distanceFromStart
+        data.forEach((station, index) => {
+            newStations[station.id] = {
+                distanceFromStart: station.distanceFromStart,
+                point: path.getPointAtLength(station.distanceFromStart * lengthFactor),
+                isBroken: station.isBroken,
+                nextStationId: index === 0 ? data[data.length - 1].id : index === data.length - 1 ? data[0].id : data[index + 1].id
+            }
+        });
+        setStations(newStations);
+    };
+    const handleTeam = (data: TeamData[]) => {
+        const newTeams: Team = {};
+        data.forEach(team => {
+            newTeams[team.id] = {
+                name: team.name,
+                logo: `${team.name.toLowerCase()}.png`,
+                show: team.id in teams ? teams[team.id].show : true,
+                count: team.id in teams ? teams[team.id].count : 0,
+                position: team.id in teams ? teams[team.id].position : 0,
+            };
+        });
+        setTeams(newTeams);
+    };
+    const handleCount = (data: CountData[]) => {
+        const newTeams: Team = {...teams};
+        data.forEach(info => {
+            if (info.team.id in newTeams) {
+                newTeams[info.team.id].count = info.count;
+                newTeams[info.team.id].position = info.position;
+            }
+        });
+        setTeams(newTeams);
+    };
+    const handleSocketData = {
+        stations: (data: StationData[]) => handleStation(data),
+        teams: (data: TeamData[]) => handleTeam(data),
+        counts: (data: CountData[]) => handleCount(data)
+    };
+
+    useEffect(() => {
+        ws.onmessage = (event => {
+            const data: SocketData = JSON.parse(event.data);
+            if (data.topic in handleSocketData) {
+                handleSocketData[data.topic](data.data);
+            }
+        });
     });
 
-    const teams = [
-        {
-            name: "Antilopen",
-            logo: "antilopen.jpg",
-            laps: 34,
-        },
-        {
-            name: "Blandinia",
-            logo: "blandinia.png",
-            laps: 12,
-        },
-        {
-            name: "Hermes",
-            logo: "hermes.png",
-            laps: 56,
-        },
-        {
-            name: "HILOK",
-            logo: "hilok.png",
-            laps: 78,
-        },
-        {
-            name: "HILOK Roze",
-            logo: "hilok roze.png",
-            laps: 55,
-        },
-        {
-            name: "HK",
-            logo: "hk.png",
-            laps: 76,
-        },
-        {
-            name: "Lila",
-            logo: "lila.png",
-            laps: 24,
-        },
-        {
-            name: "Lombrosiana",
-            logo: "lombrosiana.png",
-            laps: 45,
-        },
-        {
-            name: "Politeia",
-            logo: "politeia.png",
-            laps: 32,
-        },
-        {
-            name: "SK",
-            logo: "sk.png",
-            laps: 23,
-        },
-        {
-            name: "VEK",
-            logo: "vek.png",
-            laps: 35,
-        },
-        {
-            name: "VGK",
-            logo: "vgk.png",
-            laps: 56,
-        },
-        {
-            name: "VLK",
-            logo: "vlk.png",
-            laps: 23,
-        },
-        {
-            name: "VPPK",
-            logo: "vppk.png",
-            laps: 85,
-        },
-        {
-            name: "VRG",
-            logo: "vrg.png",
-            laps: 23,
-        },
-        {
-            name: "VTK",
-            logo: "vtk.png",
-            laps: 76,
-        },
-        {
-            name: "Wetenschappen",
-            logo: "wetenschappen.png",
-            laps: 76,
+    const pathOnChange = (newPath: string) => {
+        setPath(newPath);
+        const newStation = {}
+        const path: SVGPathElement = document.querySelector('path');
+        const maxDistance = Math.max(...Object.values(stations).map(station => station.distanceFromStart));
+        const lengthFactor = path.getTotalLength() / maxDistance;
+        for (const station in stations) {
+            newStation[station] = stations[station];
+            newStation[station].point = path.getPointAtLength(stations[station].distanceFromStart * lengthFactor);
         }
-    ];
-    const checkBoxOnChange = (event, team: string) => {
-        console.log(showTeam);
-        const oldData = {...showTeam};
-        oldData[team] = ! oldData[team];
-        console.log(oldData);
-        setShowTeam(oldData);
-        console.log(showTeam)
+        setStations(newStation);
     };
+
+    const checkBoxOnChange = (id: string) => {
+        const oldTeams = {...teams};
+        oldTeams[parseInt(id)].show = ! oldTeams[parseInt(id)].show;
+        setTeams(oldTeams);
+    };
+
     return (
-        <Grid container justifyContent="center">
-            <Grid item xs={12}>
-                <Typography variant="h1">Zoutvat</Typography>
+        <Grid container justifyContent="left">
+            <Grid className="track" item xs={10} >
+                <TextField fullWidth label="Path" variant="outlined" defaultValue={path} onChange={(event) => pathOnChange(event.target.value)} />
+            </Grid>
+            <Grid item xs={2}>
+                <FormControlLabel
+                    control={<Switch checked={showStations} onChange={() => setShowStations(! showStations)} />}
+                    label={<Typography variant="body1">Show Stations</Typography>}
+                    labelPlacement="start"
+                />
             </Grid>
             <Grid item xs={12}>
-                <Typography variant="h3">Zeus Online Urenloop Tracking Voor Attente Trackers</Typography>
-            </Grid>
-            <Grid className="track-outer" item xs={12} md={8}>
-                <svg className="track" height="100%" width="100%" viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}>
-                    <ellipse
-                        fill="none"
-                        stroke="lightgrey"
-                        strokeWidth={strokeWidth}
-                        cx={centerX} cy={centerY} rx={ellipseHorizontalRadius} ry={ellipseVerticalRadius}
+                <svg height="100%" width="100%" viewBox="0 0 100 43">
+                    <path
+                        d={path}
+                        fill="lightGray"
+                        stroke="#fc4903"
+                        strokeWidth="1"
                     />
-                    {teams
-                        .sort((team1, team2) => team2.laps - team1.laps)
-                        .filter((team) => showTeam[team.name])
-                        .map((team) => (
-                            <image key={team.name} href={`../logo/${team.logo}`} height={imageHeight}>
-                                <animateMotion
-                                    dur={0.1 + Math.floor(Math.random() * 200)}
-                                    repeatCount="indefinite"
-                                    path={`M ${centerX + maxEllipseRadius - xPathOffSet}, ${centerY - yPathOffSet} A ${ellipseHorizontalRadius}, ${ellipseVerticalRadius} 0 1 1 ${centerX - maxEllipseRadius - xPathOffSet}, ${centerY - yPathOffSet} A ${ellipseHorizontalRadius}, ${ellipseVerticalRadius} 0 1 1 ${centerX + maxEllipseRadius - xPathOffSet}, ${centerY - yPathOffSet}`}
-                                />
-                            </image>
-                        ))}
+                    { showStations && Object.values(stations).map(station => (
+                        <circle style={{ position: "relative" }}
+                                key={station.distanceFromStart}
+                                cx={station.point.x}
+                                cy={station.point.y}
+                                r={2}
+                                fill="green"
+                        />
+                    )) }
+                    { Object.values(teams).map(team => team.show && (
+                        <Runner key={team.name} team={team} stations={stations} />
+                    )) }
                 </svg>
             </Grid>
-            { teams
-                .sort((team1, team2) => team2.laps - team1.laps)
-                .map(team => (
-                    <Grid key={team.name} item xs={3} md={2}>
-                        <Card className="team">
-                            <CardMedia
-                                component="img"
-                                height="auto"
-                                image={"../logo/" + team.logo}
-                                alt={team.name}
-                            />
-                            <CardContent>
-                                <Typography variant="body2">
-                                    {team.name}
-                                </Typography>
-                                <Typography variant="h5">
-                                    {team.laps}
-                                </Typography>
-                            </CardContent>
-                            <CardActions>
-                                <FormControlLabel
-                                    control={<Checkbox defaultChecked onChange={event => checkBoxOnChange(event, team.name)}/>}
-                                    label={<Typography variant="body2">Show</Typography>}
-                                    labelPlacement="bottom"
-                                />
-                            </CardActions>
-                        </Card>
-                    </Grid>
-                ))
+            { Object.entries(teams).map(([id, team]) => (
+                <TeamDisplay key={id} id={id} team={team} callback={checkBoxOnChange} />
+            ))
             }
         </Grid>
     );

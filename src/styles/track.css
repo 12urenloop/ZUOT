@@ -1,17 +1,3 @@
-.team {
-    margin: 5px;
-}
 .track {
-    position: relative;
-    border: #535bf2 5px solid;
-    z-index: 1;
-}
-.track-outer {
-    height: 500px;
-    width: 400px;
-    border: #1a1a1a 5px solid;
-}
-.circle {
-    position: relative;
-    z-index:99999;
+    margin-top: 15px;
 }
