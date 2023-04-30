@@ -1,22 +1,8 @@
 import React, {FC} from 'react';
+import {Station, TeamInfo} from "../types";
 
-interface Team {
-    name: string,
-    logo: string,
-    show: boolean,
-    count: number,
-    position: number
-}
-interface Station {
-    [id: number] : {
-        distanceFromStart: number,
-        point: SVGPoint,
-        isBroken: boolean,
-        nextStationId: number
-    };
-}
 interface RunnerProps {
-    team: Team,
+    team: TeamInfo,
     stations: Station
 }
 

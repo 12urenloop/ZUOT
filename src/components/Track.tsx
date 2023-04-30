@@ -1,58 +1,12 @@
 import React, {FC, useEffect, useState} from 'react';
-import {
-    Card, CardActions,
-    CardContent,
-    CardMedia,
-    Checkbox,
-    FormControlLabel,
-    Grid,
-    Switch,
-    TextField,
-    Typography
-} from "@mui/material";
+import {FormControlLabel, Grid, Switch, TextField, Typography} from "@mui/material";
 import "../styles/track.css"
 import Runner from "./Runner";
+import {CountData, SocketData, Station, StationData, Team, TeamData} from "../types";
+import TeamDisplay from "./TeamDisplay";
 
 interface TrackProps {
     ws: WebSocket;
-}
-interface StationData {
-    id: number,
-    distanceFromStart: number,
-    isBroken: boolean
-}
-interface TeamData {
-    id: number,
-    name: string
-}
-interface CountData {
-    count: number,
-    team: {
-        id: number,
-        name: string
-    },
-    position: number
-}
-interface SocketData {
-    topic: "stations" | "teams" | "counts" | string,
-    data: StationData[] | TeamData[] | CountData[] |  object
-}
-interface Station {
-    [id: number] : {
-        distanceFromStart: number,
-        point: SVGPoint,
-        isBroken: boolean,
-        nextStationId: number
-    };
-}
-interface Team {
-    [id: number]: {
-        name: string,
-        logo: string,
-        show: boolean,
-        count: number,
-        position: number
-    };
 }
 
 const Track: FC<TrackProps> = ({ ws }) => {
@@ -114,7 +68,9 @@ const Track: FC<TrackProps> = ({ ws }) => {
             }
         });
     });
-    useEffect(() => {
+
+    const pathOnChange = (newPath: string) => {
+        setPath(newPath);
         const newStation = {}
         const path: SVGPathElement = document.querySelector('path');
         const maxDistance = Math.max(...Object.values(stations).map(station => station.distanceFromStart));
@@ -124,7 +80,7 @@ const Track: FC<TrackProps> = ({ ws }) => {
             newStation[station].point = path.getPointAtLength(stations[station].distanceFromStart * lengthFactor);
         }
         setStations(newStation);
-    }, [path]);
+    };
 
     const checkBoxOnChange = (id: string) => {
         const oldTeams = {...teams};
@@ -134,8 +90,8 @@ const Track: FC<TrackProps> = ({ ws }) => {
 
     return (
         <Grid container justifyContent="left">
-            <Grid style={{ marginTop: "15px" }} item xs={10} >
-                <TextField fullWidth label="Path" variant="outlined" defaultValue={path} onChange={(event) => setPath(event.target.value)} />
+            <Grid className="track" item xs={10} >
+                <TextField fullWidth label="Path" variant="outlined" defaultValue={path} onChange={(event) => pathOnChange(event.target.value)} />
             </Grid>
             <Grid item xs={2}>
                 <FormControlLabel
@@ -154,11 +110,11 @@ const Track: FC<TrackProps> = ({ ws }) => {
                     />
                     { showStations && Object.values(stations).map(station => (
                         <circle style={{ position: "relative" }}
-                            key={station.distanceFromStart}
-                            cx={station.point.x}
-                            cy={station.point.y}
-                            r={2}
-                            fill="green"
+                                key={station.distanceFromStart}
+                                cx={station.point.x}
+                                cy={station.point.y}
+                                r={2}
+                                fill="green"
                         />
                     )) }
                     { Object.values(teams).map(team => team.show && (
@@ -167,30 +123,9 @@ const Track: FC<TrackProps> = ({ ws }) => {
                 </svg>
             </Grid>
             { Object.entries(teams).map(([id, team]) => (
-                    <Grid key={id} item xs={3} md={1}>
-                        <Card className="team">
-                            <CardMedia
-                                component="img"
-                                height="auto"
-                                image={"../logo/" + team.logo}
-                                alt={team.name}
-                            />
-                            <CardContent>
-                                <Typography variant="body2">
-                                    {team.name}
-                                </Typography>
-                            </CardContent>
-                            <CardActions>
-                                <FormControlLabel
-                                    control={<Checkbox checked={team.show} onChange={() => checkBoxOnChange(id)}/>}
-                                    label={<Typography variant="body2">Show</Typography>}
-                                    labelPlacement="bottom"
-                                />
-                            </CardActions>
-                        </Card>
-                    </Grid>
-                ))
-                }
+                <TeamDisplay key={id} id={id} team={team} callback={checkBoxOnChange} />
+            ))
+            }
         </Grid>
     );
 };
