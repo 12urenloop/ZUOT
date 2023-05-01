@@ -1,4 +1,3 @@
-import './App.css'
 import React from "react";
 import {Grid, Typography} from "@mui/material";
 import Track from "./components/Track";
