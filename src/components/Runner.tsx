@@ -12,7 +12,7 @@ const Runner: FC<RunnerProps> = ({ team, stations }) => {
             {
                 stations[team.position] &&
                 <image
-                    href={`../logo/${team.logo}`}
+                    href={team.logo}
                     x={stations[team.position].point.x}
                     y={stations[team.position].point.y}
                     width="5"

@@ -36,7 +36,7 @@ const Track: FC<TrackProps> = ({ ws }) => {
         data.forEach(team => {
             newTeams[team.id] = {
                 name: team.name,
-                logo: `${team.name.toLowerCase()}.png`,
+                logo: `../logo/${team.name.toLowerCase()}.png`,
                 show: team.id in teams ? teams[team.id].show : true,
                 count: team.id in teams ? teams[team.id].count : 0,
                 position: team.id in teams ? teams[team.id].position : 0,
@@ -122,7 +122,9 @@ const Track: FC<TrackProps> = ({ ws }) => {
                     )) }
                 </svg>
             </Grid>
-            { Object.entries(teams).map(([id, team]) => (
+            { Object.entries(teams)
+                .sort(([, team1], [, team2]) => team2.count - team1.count)
+                .map(([id, team]) => (
                 <TeamDisplay key={id} id={id} team={team} callback={checkBoxOnChange} />
             ))
             }

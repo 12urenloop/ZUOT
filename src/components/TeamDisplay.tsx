@@ -11,17 +11,20 @@ interface TeamProps {
 
 const TeamDisplay: FC<TeamProps> = ({ id, team, callback }) => {
     return (
-        <Grid item xs={3} md={1}>
+        <Grid item xs={3} md={2}>
             <Card className="team">
                 <CardMedia
                     component="img"
                     height="auto"
-                    image={"../logo/" + team.logo}
+                    image={team.logo}
                     alt={team.name}
                 />
                 <CardContent>
                     <Typography variant="body2">
                         {team.name}
+                    </Typography>
+                    <Typography variant="body">
+                        {team.count}
                     </Typography>
                 </CardContent>
                 <CardActions>
