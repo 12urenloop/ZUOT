@@ -68,9 +68,7 @@ const Track: FC<TrackProps> = ({ ws }) => {
             }
         });
     });
-
-    const pathOnChange = (newPath: string) => {
-        setPath(newPath);
+    useEffect(() => {
         const newStation = {}
         const path: SVGPathElement = document.querySelector('path');
         const maxDistance = Math.max(...Object.values(stations).map(station => station.distanceFromStart));
@@ -80,7 +78,7 @@ const Track: FC<TrackProps> = ({ ws }) => {
             newStation[station].point = path.getPointAtLength(stations[station].distanceFromStart * lengthFactor);
         }
         setStations(newStation);
-    };
+    }, [path]);
 
     const checkBoxOnChange = (id: string) => {
         const oldTeams = {...teams};
@@ -91,7 +89,7 @@ const Track: FC<TrackProps> = ({ ws }) => {
     return (
         <Grid container justifyContent="left">
             <Grid className="track" item xs={10} >
-                <TextField fullWidth label="Path" variant="outlined" defaultValue={path} onChange={(event) => pathOnChange(event.target.value)} />
+                <TextField fullWidth label="Path" variant="outlined" defaultValue={path} onChange={(event) => setPath(event.target.value)} />
             </Grid>
             <Grid item xs={2}>
                 <FormControlLabel
