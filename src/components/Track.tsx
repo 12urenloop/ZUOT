@@ -2,7 +2,7 @@ import React, {FC, useEffect, useState} from 'react';
 import {FormControlLabel, Grid, Switch, TextField, Typography} from "@mui/material";
 import "../styles/track.css"
 import Runner from "./Runner";
-import {CountData, SocketData, Station, StationData, Team, TeamData} from "../types";
+import {SocketData, Station, StationData, Team, TeamData, TeamInformationData,} from "../types";
 import TeamDisplay from "./TeamDisplay";
 
 interface TrackProps {
@@ -31,33 +31,39 @@ const Track: FC<TrackProps> = ({ ws }) => {
         });
         setStations(newStations);
     };
-    const handleTeam = (data: TeamData[]) => {
+    const handleTeams = (data: TeamData[]) => {
         const newTeams: Team = {};
         data.forEach(team => {
             newTeams[team.id] = {
                 name: team.name,
                 logo: `../logo/${team.name.toLowerCase()}.png`,
                 show: team.id in teams ? teams[team.id].show : true,
-                count: team.id in teams ? teams[team.id].count : 0,
+                laps: team.id in teams ? teams[team.id].laps : 0,
                 position: team.id in teams ? teams[team.id].position : 0,
+                averageTimes: team.id in teams ? teams[team.id].averageTimes : {}
             };
         });
         setTeams(newTeams);
     };
-    const handleCount = (data: CountData[]) => {
+    const handleTeamInformation = (data: TeamInformationData[]) => {
         const newTeams: Team = {...teams};
-        data.forEach(info => {
-            if (info.team.id in newTeams) {
-                newTeams[info.team.id].count = info.count;
-                newTeams[info.team.id].position = info.position;
-            }
-        });
-        setTeams(newTeams);
+        if (Object.keys(newTeams).length > 0) {
+            // Check necessary for first render
+            data.forEach(info => {
+                if (info.id in newTeams) {
+                    newTeams[info.id].laps = info.laps;
+                    newTeams[info.id].position = info.position;
+                    newTeams[info.id].averageTimes = info.times;
+                }
+            });
+
+            setTeams(newTeams);
+        }
     };
     const handleSocketData = {
         stations: (data: StationData[]) => handleStation(data),
-        teams: (data: TeamData[]) => handleTeam(data),
-        counts: (data: CountData[]) => handleCount(data)
+        teams: (data: TeamData[]) => handleTeams(data),
+        team_information: (data: TeamInformationData[]) => handleTeamInformation(data)
     };
 
     useEffect(() => {
@@ -123,8 +129,8 @@ const Track: FC<TrackProps> = ({ ws }) => {
             { Object.entries(teams)
                 .sort(([, team1], [, team2]) => team2.count - team1.count)
                 .map(([id, team]) => (
-                <TeamDisplay key={id} id={id} team={team} callback={checkBoxOnChange} />
-            ))
+                    <TeamDisplay key={id} id={id} team={team} callback={checkBoxOnChange} />
+                ))
             }
         </Grid>
     );

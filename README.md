@@ -14,7 +14,8 @@
 - [ ] Add animations to the runners
 - [ ] Allow custom background for the track
 - [ ] Svg view box support different sizes of svg paths
-- [ ] don't make it look like a 5-year-old designed it
+- [ ] Support broken Ronnies
+- [ ] Don't make it look like a 5-year-old designed it
 
 ### Development
 In order to simulate data:

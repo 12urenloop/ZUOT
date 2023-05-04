@@ -1,20 +1,11 @@
-export interface TeamInfo {
-    name: string,
-    logo: string,
-    show: boolean,
-    count: number,
-    position: number
-}
-export interface Team {
-    [id: number]: TeamInfo
-}
-export interface Station {
-    [id: number] : {
-        distanceFromStart: number,
-        point: SVGPoint,
-        isBroken: boolean,
-        nextStationId: number
-    };
+// Types for incoming data
+export interface TeamInformationData {
+    id: number,
+    laps: number,
+    position: number,
+    times: {
+        [stationId: number]: number
+    }
 }
 export interface StationData {
     id: number,
@@ -25,15 +16,27 @@ export interface TeamData {
     id: number,
     name: string
 }
-export interface CountData {
-    count: number,
-    team: {
-        id: number,
-        name: string
-    },
-    position: number
-}
 export interface SocketData {
-    topic: "stations" | "teams" | "counts" | string,
-    data: StationData[] | TeamData[] | CountData[] |  object
+    topic: "stations" | "teams" | "team_information" | string,
+    data: StationData[] | TeamData[] | TeamInformationData[] | object
+}
+// Types for saving the data
+export interface TeamInfo {
+    name: string,
+    logo: string,
+    show: boolean,
+    laps: number,
+    position: number,
+    averageTimes: { [stationId: number]: number }
+}
+export interface Team {
+    [id: number]: TeamInfo
+}
+export interface Station {
+    [id: number]: {
+        distanceFromStart: number,
+        point: SVGPoint,
+        isBroken: boolean,
+        nextStationId: number
+    }
 }

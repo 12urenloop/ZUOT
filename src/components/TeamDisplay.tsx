@@ -24,7 +24,7 @@ const TeamDisplay: FC<TeamProps> = ({ id, team, callback }) => {
                         {team.name}
                     </Typography>
                     <Typography variant="body">
-                        {team.count}
+                        {team.laps}
                     </Typography>
                 </CardContent>
                 <CardActions>
