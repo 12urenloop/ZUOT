@@ -15,6 +15,7 @@
 - [ ] Allow custom background for the track
 - [ ] Svg view box support different sizes of svg paths
 - [ ] Support broken Ronnies
+- [ ] Support last station not set at finish
 - [ ] Don't make it look like a 5-year-old designed it
 
 ### Development

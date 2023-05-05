@@ -1,9 +1,10 @@
-import React, {FC, useEffect, useState} from 'react';
+import React, {FC, useEffect, useState, useRef} from 'react';
 import {FormControlLabel, Grid, Switch, TextField, Typography} from "@mui/material";
 import "../styles/track.css"
-import Runner from "./Runner";
-import {SocketData, Station, StationData, Team, TeamData, TeamInformationData,} from "../types";
+import NoAnimationRunner from "./oldRunners/noAnimationRunner";
+import {SocketData, Station, StationData, Team, TeamData, TeamInformationData, TeamPosition,} from "../types";
 import TeamDisplay from "./TeamDisplay";
+import Runner from "./Runner";
 
 interface TrackProps {
     ws: WebSocket;
@@ -15,18 +16,21 @@ const Track: FC<TrackProps> = ({ ws }) => {
     const [stations, setStations] = useState<Station>({});
     const [showStations, setShowStations] = useState<boolean>(true);
     const [teams, setTeams] = useState<Team>({});
+    const teamPositions = useRef<TeamPosition>({});
 
     const handleStation = (data: StationData[]) => {
         const newStations: Station = {};
         const path: SVGPathElement = document.querySelector('path');
+
         data.sort((station1, station2) => station1.distanceFromStart - station2.distanceFromStart)
         const lengthFactor = path.getTotalLength() / data[data.length - 1].distanceFromStart
+
         data.forEach((station, index) => {
             newStations[station.id] = {
                 distanceFromStart: station.distanceFromStart,
                 point: path.getPointAtLength(station.distanceFromStart * lengthFactor),
                 isBroken: station.isBroken,
-                nextStationId: index === 0 ? data[data.length - 1].id : index === data.length - 1 ? data[0].id : data[index + 1].id
+                nextStationId: index === data.length - 1 ? data[0].id : data[index + 1].id
             }
         });
         setStations(newStations);
@@ -42,6 +46,15 @@ const Track: FC<TrackProps> = ({ ws }) => {
                 position: team.id in teams ? teams[team.id].position : 0,
                 averageTimes: team.id in teams ? teams[team.id].averageTimes : {}
             };
+            if (teamPositions.current && ! (team.id in teamPositions.current)) {
+
+                teamPositions.current[team.id] = {
+                    begin: -1,
+                    stationId: -1,
+                    stationDistance: -1,
+                    nextStationDistance: -1
+                }
+            }
         });
         setTeams(newTeams);
     };
@@ -121,8 +134,11 @@ const Track: FC<TrackProps> = ({ ws }) => {
                                 fill="green"
                         />
                     )) }
-                    { Object.values(teams).map(team => team.show && (
-                        <Runner key={team.name} team={team} stations={stations} />
+                    {/*{ Object.values(teams).map(team => team.show && (*/}
+                    {/*    <NoAnimationRunner key={team.name} team={team} stations={stations} />*/}
+                    {/*)) }*/}
+                    { Object.entries(teams).map(([id, team]) => team.show && (
+                        <Runner key={id} teamPositions={teamPositions} teamId={parseInt(id)} team={team} stations={stations} path={document.querySelector('path')} />
                     )) }
                 </svg>
             </Grid>

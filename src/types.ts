@@ -40,3 +40,15 @@ export interface Station {
         nextStationId: number
     }
 }
+export interface TeamPosition {
+    [id: number]: {
+        begin: number,
+        stationId: number,
+        stationDistance: number,
+        nextStationDistance: number
+    }
+}
+export interface Position {
+    x: number,
+    y: number
+}

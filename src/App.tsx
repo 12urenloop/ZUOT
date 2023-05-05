@@ -1,6 +1,7 @@
 import React from "react";
 import {Grid, Typography} from "@mui/material";
 import Track from "./components/Track";
+import Test from "./components/Test";
 
 const App = () => {
 
@@ -17,6 +18,7 @@ const App = () => {
             <Grid item xs={12}>
                 <Track ws={ws}/>
             </Grid>
+            {/*<Test ws={ws} />*/}
         </Grid>
     );
 }
