@@ -42,13 +42,12 @@ export interface Station {
 }
 export interface TeamPosition {
     [id: number]: {
-        begin: number,
         stationId: number,
+        begin: number,
+        end: number,
         stationDistance: number,
-        nextStationDistance: number
+        nextStationDistance: number;
+        offset: number,
+        stationTimes: { [stationId: number]: number }
     }
-}
-export interface Position {
-    x: number,
-    y: number
 }

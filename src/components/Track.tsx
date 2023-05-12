@@ -4,12 +4,13 @@ import "../styles/track.css"
 import NoAnimationRunner from "./oldRunners/noAnimationRunner";
 import {SocketData, Station, StationData, Team, TeamData, TeamInformationData, TeamPosition,} from "../types";
 import TeamDisplay from "./TeamDisplay";
-import Runner from "./Runner";
+import VersionOne from "./oldRunners/VersionOne";
 
 interface TrackProps {
     ws: WebSocket;
 }
 
+// TODO: Check loxsi to change it so it sends each time separately to avoid sending the same stuff
 const Track: FC<TrackProps> = ({ ws }) => {
 
     const [path, setPath] = useState<string>("M 19, 5 L 81, 5 A 14, 14 -90 1 1 81, 37 L 19, 37 A 14, 14 90 0 1 19, 5 Z");
@@ -47,13 +48,15 @@ const Track: FC<TrackProps> = ({ ws }) => {
                 averageTimes: team.id in teams ? teams[team.id].averageTimes : {}
             };
             if (teamPositions.current && ! (team.id in teamPositions.current)) {
-
                 teamPositions.current[team.id] = {
-                    begin: -1,
                     stationId: -1,
+                    begin: -1,
+                    end: -1,
                     stationDistance: -1,
-                    nextStationDistance: -1
-                }
+                    nextStationDistance: -1,
+                    offset: -1,
+                    stationTimes: {}
+                };
             }
         });
         setTeams(newTeams);
@@ -63,10 +66,23 @@ const Track: FC<TrackProps> = ({ ws }) => {
         if (Object.keys(newTeams).length > 0) {
             // Check necessary for first render
             data.forEach(info => {
+                // Update team info
                 if (info.id in newTeams) {
                     newTeams[info.id].laps = info.laps;
                     newTeams[info.id].position = info.position;
                     newTeams[info.id].averageTimes = info.times;
+                }
+                // Update TeamPosition Info
+                if (teamPositions.current && info.id in teamPositions.current) {
+                    // Check if actual data is in front or behind simulation
+                    const teamPosition = teamPositions.current[info.id];
+                    if (info.position % 7 > teamPosition.stationId % 7) {
+                        // Actual data is in front
+                        teamPosition.offset += Date.now() - teamPosition.end;
+                    } else {
+                        // Actual data is behind
+                        teamPosition.offset -= Date.now() - teamPosition.stationTimes[info.position];
+                    }
                 }
             });
 
@@ -138,7 +154,7 @@ const Track: FC<TrackProps> = ({ ws }) => {
                     {/*    <NoAnimationRunner key={team.name} team={team} stations={stations} />*/}
                     {/*)) }*/}
                     { Object.entries(teams).map(([id, team]) => team.show && (
-                        <Runner key={id} teamPositions={teamPositions} teamId={parseInt(id)} team={team} stations={stations} path={document.querySelector('path')} />
+                        <VersionOne key={id} teamPositions={teamPositions} teamId={parseInt(id)} team={team} stations={stations} path={document.querySelector('path')} />
                     )) }
                 </svg>
             </Grid>
