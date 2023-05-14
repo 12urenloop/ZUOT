@@ -23,31 +23,33 @@ export interface SocketData {
 // Types for saving the data
 export interface TeamInfo {
     name: string,
-    logo: string,
-    show: boolean,
     laps: number,
-    position: number,
-    averageTimes: { [stationId: number]: number }
+    logo: string,
+    show: boolean
 }
 export interface Team {
     [id: number]: TeamInfo
 }
 export interface Station {
-    [id: number]: {
+        id: number
         distanceFromStart: number,
         point: SVGPoint,
         isBroken: boolean,
         nextStationId: number
-    }
 }
-export interface TeamPosition {
+export interface TeamPositions {
     [id: number]: {
-        stationId: number,
-        begin: number,
-        end: number,
-        stationDistance: number,
-        nextStationDistance: number;
-        offset: number,
-        stationTimes: { [stationId: number]: number }
+        position: number,
+        averageTimes: { [stationId: number]: number }
+        runner: {
+            stationary: boolean,
+            stationIndex: number,
+            begin: number,
+            end: number,
+            stationDistance: number,
+            nextStationDistance: number;
+            offset: number,
+            stationTimes: { [stationIndex: number]: number }
+        }
     }
 }

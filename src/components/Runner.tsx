@@ -1,12 +1,12 @@
 import React, {FC, RefObject, useEffect, useState} from 'react';
-import {Station, TeamInfo, TeamPosition} from "../types";
+import {Station, TeamInfo, TeamPositions} from "../types";
 
 interface RunnerProps {
-    teamPositions: RefObject<TeamPosition>,
-    teamId: number,
+    teamPositions: RefObject<TeamPositions>,
     team: TeamInfo,
-    stations: Station,
-    path: SVGPathElement
+    teamId: number,
+    stations: Station[],
+    path: SVGPathElement,
 }
 
 /**
@@ -15,41 +15,40 @@ interface RunnerProps {
  * When new data comes in it checks if the runner reached the station sooner or later.
  * Based on that it'll adjust the next average time and add the offset it accumulated in the last segment
  */
-const Runner: FC<RunnerProps> = ({ teamPositions, teamId, team, stations, path }) => {
+const Runner: FC<RunnerProps> = ({ teamPositions, team, teamId, stations, path }) => {
 
-    // TODO: Change next station id to using mod
+    // TODO: No average times => NaN errors
     const [position, setPosition] = useState<DOMPoint>(path.getPointAtLength(0));
 
     useEffect(() => {
         let animationFrameId: number;
 
         const moveRunner = () => {
-            if (teamPositions.current && teamId in teamPositions.current) {
+            if (teamPositions.current && teamId in teamPositions.current && (! teamPositions.current[teamId].runner.stationary)) {
                 const teamPosition = teamPositions.current[teamId];
+                const runner = teamPosition.runner;
                 const currentTime = Date.now();
 
                 // Check if runner arrived to the next station
-                if (currentTime > teamPosition.end) {
+                if (currentTime - runner.begin > runner.end) {
                     // Update information
-                    teamPosition.stationId = stations[teamPosition.stationId].nextStationId;
-                    teamPosition.stationTimes[teamPosition.stationId] = teamPosition.end;
-                    teamPosition.begin = currentTime;
-                    teamPosition.end = team.averageTimes[teamPosition.stationId] + teamPosition.offset;
-                    teamPosition.offset = 0;
-                    teamPosition.stationDistance = stations[teamPosition.stationId].distanceFromStart;
-                    teamPosition.nextStationDistance = stations[stations[teamPosition.stationId].nextStationId].distanceFromStart;
-                    if (teamPosition.stationDistance > teamPosition.nextStationDistance) {
-                        teamPosition.stationDistance = 0;
+                    runner.stationIndex = stations[runner.stationIndex].nextStationId;
+                    runner.stationTimes[runner.stationIndex] = runner.begin + runner.end;
+                    runner.begin = currentTime;
+                    runner.end = Math.max(teamPosition.averageTimes[runner.stationIndex] + runner.offset, 1);
+                    runner.offset = 0;
+                    runner.stationDistance = stations[runner.stationIndex].distanceFromStart;
+                    runner.nextStationDistance = stations[stations[runner.stationIndex].nextStationId].distanceFromStart;
+                    if (runner.stationDistance > runner.nextStationDistance) {
+                        runner.stationDistance = 0;
                     }
                 }
                 // Calculate new position based on time passed
-                const timeProgress = teamPosition.end / (currentTime - teamPosition.begin);
-                const offset = (teamPosition.nextStationDistance - teamPosition.stationDistance) / timeProgress;
-                const distance = teamPosition.stationDistance + offset;
+                const timeProgress = runner.end / (currentTime - runner.begin);
+                const offset = (runner.nextStationDistance - runner.stationDistance) / timeProgress;
+                const distance = runner.stationDistance + offset;
 
-                // TODO: Different way for lengthFactor
-                const stationsSorted = Object.values(stations).sort((station1, station2) => station1.distanceFromStart - station2.distanceFromStart);
-                const lengthFactor = path.getTotalLength() / stationsSorted[stationsSorted.length - 1].distanceFromStart;
+                const lengthFactor = path.getTotalLength() / stations[stations.length - 1].distanceFromStart;
                 const newPos = distance * lengthFactor;
                 setPosition(path.getPointAtLength(newPos));
             }
