@@ -29,7 +29,7 @@ const TeamDisplay: FC<TeamProps> = ({ id, team, callback }) => {
                 </CardContent>
                 <CardActions>
                     <FormControlLabel
-                        control={<Checkbox checked={team.show} onChange={() => callback(id)}/>}
+                        control={<Checkbox checked={team.shown} onChange={() => callback(id)}/>}
                         label={<Typography variant="body2">Show</Typography>}
                         labelPlacement="bottom"
                     />
